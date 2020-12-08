@@ -1,0 +1,33 @@
+{
+  "name": "red-contrib-pid-autotune",
+  "version": "1.0.0",
+  "description": "A node-red node to performe PID autotune on a brew rig",
+  "scripts": {
+    "test": "mocha \"test/**/*_spec.js\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/enorfelt/node-red-contrib-pid-autotune.git"
+  },
+  "keywords": [
+    "node-red",
+    "pid",
+    "autotune"
+  ],
+  "node-red": {
+    "nodes": {
+      "pid-autotune": "pid-autotune.js"
+    }
+  },
+  "author": "Erik Norfelt",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/enorfelt/node-red-contrib-pid-autotune/issues"
+  },
+  "homepage": "https://github.com/enorfelt/node-red-contrib-pid-autotune#readme",
+  "devDependencies": {
+    "mocha": "^8.2.1",
+    "node-red": "^1.2.6",
+    "node-red-node-test-helper": "^0.2.5"
+  }
+}

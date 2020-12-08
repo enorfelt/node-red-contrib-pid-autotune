@@ -1,0 +1,46 @@
+<script type="text/javascript">
+  RED.nodes.registerType("pid-autotune", {
+    category: "brewing",
+    color: "#a6bbcf",
+    defaults: {
+      name: { value: "" },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: "icon-192x192.png",
+    label: function () {
+      return this.name || "pid-autotune";
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="pid-autotune">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Name" />
+  </div>
+</script>
+
+<script type="text/html" data-help-name="pid-autotune">
+  <p>"A node to performe PID autotune on a brew rig</p>
+  <h3>Inputs</h3>
+  <dl class="message-properties">
+    <dt>
+      payload
+      <span class="property-type">str</span>
+    </dt>
+    <dd class="optional">
+      Triggers the start of autotune.
+    </dd>
+  </dl>
+  <h3>Outputs</h3>
+  <dl class="message-properties">
+    <dt>
+      payload
+      <span class="property-type">object | array</span>
+    </dt>
+    <dd class="optional">
+      The result of the autotune process.
+    </dd>
+  </dl>
+</script>
