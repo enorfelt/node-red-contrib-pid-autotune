@@ -28,8 +28,27 @@ describe("AutoTuner", function () {
    it("should return pid parameters for brewing", function(done) {
       const autoTuner = new AutoTuner(65, 100, 5, 30, 0, 100);
       var params = autoTuner.getPIDParameters("brewing");
-      params.Kp.should.be.eql(10);
+      params.Kp.should.be.eql(0);
       done();
    });
   });
+
+  describe("run", function() {
+     it("should run", function(done) {
+      const autoTuner = new AutoTuner(65, 100, 5, 30, 0, 100);
+      var result = true;
+      result = autoTuner.run(60);
+      result = autoTuner.run(61);
+      result = autoTuner.run(62);
+      result = autoTuner.run(63);
+      result = autoTuner.run(64);
+      result = autoTuner.run(65);
+      result = autoTuner.run(64);
+      result = autoTuner.run(63);
+      result = autoTuner.run(62);
+
+      result.should.be.eql(false);
+      done();
+     });
+  })
 });

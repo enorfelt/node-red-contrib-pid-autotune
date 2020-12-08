@@ -1,15 +1,28 @@
 "use strict";
 
-class deque {
+class deque extends Array {
   constructor(maxlen) {
-    this._maxlen = maxlen;
+    super();
+    this.maxlen = maxlen;
+  }
+
+  append(item) {
+    if (this.length === this.maxlen) {
+      this.shift();
+    }
+
+    this.push(item);
+  }
+
+  clear() {
+    this.splice(0, this.length);
   }
 }
 
 class AutoTuner {
-//   static get PIDParams() {
-//     return new namedtuple("PIDParams", ["Kp", "Ki", "Kd"]);
-//   } // TODO
+  //   static get PIDParams() {
+  //     return new namedtuple("PIDParams", ["Kp", "Ki", "Kd"]);
+  //   } // TODO
 
   static get PEAK_AMPLITUDE_TOLERANCE() {
     return 0.05;
@@ -39,7 +52,7 @@ class AutoTuner {
       "pessen-integral": [28, 50, 133],
       "some-overshoot": [60, 40, 60],
       "no-overshoot": [100, 40, 60],
-      "brewing": [2.5, 3, 3600],
+      brewing: [2.5, 3, 3600],
     };
   }
 
@@ -51,7 +64,8 @@ class AutoTuner {
     outputMin = Number.MIN_VALUE,
     outputMax = Number.MAX_VALUE,
     noiseband = 0.5,
-    getTimeMs = undefined
+	getTimeMs = undefined,
+	logFn = undefined
   ) {
     if (!setpoint) throw new Error("Kettle setpoint must be specified");
     if (outputstep < 1)
@@ -84,7 +98,8 @@ class AutoTuner {
     this._initialOutput = 0;
     this._inducedAmplitude = 0;
     this._Ku = 0;
-    this._Pu = 0;
+	this._Pu = 0;
+	this._logFn = logFn;
 
     if (getTimeMs && {}.toString.call(getTimeMs) === "[object Function]") {
       this._getTimeMs = getTimeMs;
@@ -110,7 +125,7 @@ class AutoTuner {
     const kp = this._Ku / divisors[0];
     const ki = kp / (this._Pu / divisors[1]);
     const kd = kp * (this._Pu / divisors[2]);
-    return {Kp: kp, Ki: ki, Kd: kd};
+    return { Kp: kp, Ki: ki, Kd: kd };
   }
 
   log(text) {
@@ -118,7 +133,11 @@ class AutoTuner {
     // filename = "./logs/autotune.log"
     // formatted_time = strftime("%Y-%m-%d %H:%M:%S", localtime())
     // with open(filename, "a") as file:
-    //     file.write("%s,%s\n" % (formatted_time, text))
+	//     file.write("%s,%s\n" % (formatted_time, text))
+	
+	if (this._logFn && {}.toString.call(this._logFn) === "[object Function]") {
+		this._logFn(text);
+	}
   }
 
   run(inputValue) {
@@ -130,7 +149,7 @@ class AutoTuner {
       this._state == AutoTuner.STATE_FAILED
     )
       this._initTuner(now);
-    else if (now - this._lastRunTimestamp < this._sampleTime) return False;
+    else if (now - this._lastRunTimestamp < this._sampleTime) return false;
 
     this._lastRunTimestamp = now;
 
@@ -173,9 +192,7 @@ class AutoTuner {
     this._inputs.append(inputValue); //TODO Append
 
     // we don't want to trust the maxes or mins until the input array is full
-    if (this._inputs.length < this._inputs.maxlen)
-      //TODO
-      return false;
+    if (this._inputs.length < this._inputs.maxlen) return false;
 
     // increment peak count and record peak time for maxima and minima
     var inflection = false;
@@ -205,9 +222,9 @@ class AutoTuner {
     this._inducedAmplitude = 0;
 
     if (inflection && this._peakCount > 4) {
-      var absMax = this._peaks[-2];
-      var absMin = this._peaks[-2];
-      for (var i in range(0, len(this._peaks) - 2)) {
+      var absMax = this._peaks[this._peaks.length - 2];
+      var absMin = this._peaks[this._peaks.length - 2];
+      for (var i = 0; i < this._peaks.length - 2; i++) { // in range(0, len(this._peaks) - 2)) {
         this._inducedAmplitude += Math.abs(this._peaks[i] - this._peaks[i + 1]);
         absMax = Math.max(this._peaks[i], absMax);
         absMin = Math.min(this._peaks[i], absMin);
