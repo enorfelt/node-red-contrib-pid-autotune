@@ -1,5 +1,6 @@
 const helper = require("node-red-node-test-helper");
 var Context = require("@node-red/runtime/lib/nodes/context");
+var should = require('should');
 const pidAutotune = require('../pid-autotune');
 
 helper.init(require.resolve("node-red"));
@@ -42,7 +43,7 @@ describe("pid-autotune node", function () {
     var flow = [{ id: "n1", type: "pid-autotune", name: "pid-autotune" }];
     helper.load(pidAutotune, flow, function () {
       var n1 = helper.getNode("n1");
-      n1.should.have.property("name", "pid-autotune");
+      should(n1).have.property("name", "pid-autotune");
       done();
     });
   });

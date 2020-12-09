@@ -1,29 +1,8 @@
 "use strict";
 
-class deque extends Array {
-  constructor(maxlen) {
-    super();
-    this.maxlen = maxlen;
-  }
-
-  append(item) {
-    if (this.length === this.maxlen) {
-      this.shift();
-    }
-
-    this.push(item);
-  }
-
-  clear() {
-    this.splice(0, this.length);
-  }
-}
+const deque = require("./deque");
 
 class AutoTuner {
-  //   static get PIDParams() {
-  //     return new namedtuple("PIDParams", ["Kp", "Ki", "Kd"]);
-  //   } // TODO
-
   static get PEAK_AMPLITUDE_TOLERANCE() {
     return 0.05;
   }
@@ -52,11 +31,11 @@ class AutoTuner {
       "pessen-integral": [28, 50, 133],
       "some-overshoot": [60, 40, 60],
       "no-overshoot": [100, 40, 60],
-      brewing: [2.5, 3, 3600],
+      brewing: [2.5, 6, 380],
     };
   }
-
-  constructor(
+  /*
+{
     setpoint,
     outputstep = 10,
     sampleTimeSec = 5,
@@ -64,10 +43,19 @@ class AutoTuner {
     outputMin = Number.MIN_VALUE,
     outputMax = Number.MAX_VALUE,
     noiseband = 0.5,
-	getTimeMs = undefined,
-	logFn = undefined
-  ) {
-    if (!setpoint) throw new Error("Kettle setpoint must be specified");
+    getTimeMs = undefined,
+    logFn = undefined
+    }
+*/
+  constructor(config) {
+    var lookbackSec = config.lookbackSec || 60;
+    var sampleTimeSec = config.sampleTimeSec || 5;
+    var outputstep = config.outputstep || 10;
+    var outputMin = config.outputMin || Number.MIN_VALUE;
+    var outputMax = config.outputMax || Number.MAX_VALUE;
+    var noiseband = config.noiseband || 0.5;
+
+    if (!config.setpoint) throw new Error("Kettle setpoint must be specified");
     if (outputstep < 1)
       throw new Error("Output step % must be greater or equal to 1");
     if (sampleTimeSec < 1)
@@ -81,7 +69,7 @@ class AutoTuner {
 
     this._inputs = new deque(Math.round(lookbackSec / sampleTimeSec));
     this._sampleTime = sampleTimeSec * 1000;
-    this._setpoint = setpoint;
+    this._setpoint = config.setpoint;
     this._outputstep = outputstep;
     this._noiseband = noiseband;
     this._outputMin = outputMin;
@@ -98,11 +86,14 @@ class AutoTuner {
     this._initialOutput = 0;
     this._inducedAmplitude = 0;
     this._Ku = 0;
-	this._Pu = 0;
-	this._logFn = logFn;
+    this._Pu = 0;
+    this._logFn = config.logFn || undefined;
 
-    if (getTimeMs && {}.toString.call(getTimeMs) === "[object Function]") {
-      this._getTimeMs = getTimeMs;
+    if (
+      config.getTimeMs &&
+      {}.toString.call(config.getTimeMs) === "[object Function]"
+    ) {
+      this._getTimeMs = config.getTimeMs;
     } else {
       this._getTimeMs = this._currentTimeMs;
     }
@@ -129,15 +120,11 @@ class AutoTuner {
   }
 
   log(text) {
-    //TODO
-    // filename = "./logs/autotune.log"
-    // formatted_time = strftime("%Y-%m-%d %H:%M:%S", localtime())
-    // with open(filename, "a") as file:
-	//     file.write("%s,%s\n" % (formatted_time, text))
-	
-	if (this._logFn && {}.toString.call(this._logFn) === "[object Function]") {
-		this._logFn(text);
-	}
+    var formattedDate = new Date(Date.now()).toISOString();
+    var log = `${formattedDate} - ${text}`;
+    if (this._logFn && {}.toString.call(this._logFn) === "[object Function]") {
+      this._logFn(log);
+    }
   }
 
   run(inputValue) {
@@ -159,15 +146,15 @@ class AutoTuner {
       inputValue > this._setpoint + this._noiseband
     ) {
       this._state = AutoTuner.STATE_RELAY_STEP_DOWN;
-      this.log("switched state: {0}".format(this._state)); // TODO format
-      this.log("input: {0}".format(inputValue)); // TODO Format
+      this.log(`switched state: ${this._state}`);
+      this.log(`input: ${inputValue}`);
     } else if (
       this._state == AutoTuner.STATE_RELAY_STEP_DOWN &&
       inputValue < this._setpoint - this._noiseband
     ) {
       this._state = AutoTuner.STATE_RELAY_STEP_UP;
-      this.log("switched state: {0}".format(this._state)); // TODO Format
-      this.log("input: {0}".format(inputValue)); // TODO Format
+      this.log(`switched state: ${this._state}`);
+      this.log(`input: ${inputValue}`);
     }
 
     // set output
@@ -189,7 +176,7 @@ class AutoTuner {
       isMin = isMin && inputValue < val;
     });
 
-    this._inputs.append(inputValue); //TODO Append
+    this._inputs.append(inputValue);
 
     // we don't want to trust the maxes or mins until the input array is full
     if (this._inputs.length < this._inputs.maxlen) return false;
@@ -211,10 +198,10 @@ class AutoTuner {
     // update peak times and values
     if (inflection) {
       this._peakCount += 1;
-      this._peaks.append(inputValue); // TODO Append
-      this._peakTimestamps.append(now); // TODO APPEND
-      this.log("found peak: {0}".format(inputValue)); // TODO Format
-      this.log("peak count: {0}".format(this._peakCount)); // TODO Format
+      this._peaks.append(inputValue);
+      this._peakTimestamps.append(now);
+      this.log(`found peak: ${inputValue}`);
+      this.log(`peak count: ${this._peakCount}`);
     }
 
     // check for convergence of induced oscillation
@@ -224,7 +211,8 @@ class AutoTuner {
     if (inflection && this._peakCount > 4) {
       var absMax = this._peaks[this._peaks.length - 2];
       var absMin = this._peaks[this._peaks.length - 2];
-      for (var i = 0; i < this._peaks.length - 2; i++) { // in range(0, len(this._peaks) - 2)) {
+      for (var i = 0; i < this._peaks.length - 2; i++) {
+        // in range(0, len(this._peaks) - 2)) {
         this._inducedAmplitude += Math.abs(this._peaks[i] - this._peaks[i + 1]);
         absMax = Math.max(this._peaks[i], absMax);
         absMin = Math.min(this._peaks[i], absMin);
@@ -237,8 +225,8 @@ class AutoTuner {
         (0.5 * (absMax - absMin) - this._inducedAmplitude) /
         this._inducedAmplitude;
 
-      this.log("amplitude: {0}".format(this._inducedAmplitude)); // TODO Format
-      this.log("amplitude deviation: {0}".format(amplitudeDev)); // TODO Format
+      this.log(`amplitude: ${this._inducedAmplitude}`);
+      this.log(`amplitude deviation: ${amplitudeDev}`);
 
       if (amplitudeDev < AutoTuner.PEAK_AMPLITUDE_TOLERANCE)
         this._state = AutoTuner.STATE_SUCCEEDED;
@@ -256,11 +244,11 @@ class AutoTuner {
       this._output = 0;
 
       // calculate ultimate gain
-      this._Ku = (4.0 * this._outputstep) / (this._inducedAmplitude * math.pi);
+      this._Ku = (4.0 * this._outputstep) / (this._inducedAmplitude * Math.PI);
 
       // calculate ultimate period in seconds
-      period1 = this._peakTimestamps[3] - this._peakTimestamps[1];
-      period2 = this._peakTimestamps[4] - this._peakTimestamps[2];
+      const period1 = this._peakTimestamps[3] - this._peakTimestamps[1];
+      const period2 = this._peakTimestamps[4] - this._peakTimestamps[2];
       this._Pu = (0.5 * (period1 + period2)) / 1000.0;
       return true;
     }
