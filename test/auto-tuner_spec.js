@@ -106,8 +106,8 @@ describe("AutoTuner", function () {
 
       const pidParams = sim.sut.getPIDParameters('brewing');
       should(pidParams.Kp).be.eql(75.45758866136876)
-      should(pidParams.Ki).be.eql(0.16140660676228613)
-      should(pidParams.Kd).be.eql(556.9961478819457)
+      should(pidParams.Ki).be.eql(0.08070330338114307)
+      should(pidParams.Kd).be.eql(58.79403783198316)
       done();
     });
   });

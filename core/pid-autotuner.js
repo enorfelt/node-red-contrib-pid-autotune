@@ -31,7 +31,7 @@ class AutoTuner {
       "pessen-integral": [28, 50, 133],
       "some-overshoot": [60, 40, 60],
       "no-overshoot": [100, 40, 60],
-      brewing: [2.5, 6, 380],
+      brewing: [2.5, 3, 3600],
     };
   }
   /*
@@ -131,9 +131,9 @@ class AutoTuner {
     const now = this._getTimeMs();
 
     if (
-      this._state == AutoTuner.STATE_OFF ||
-      this._state == AutoTuner.STATE_SUCCEEDED ||
-      this._state == AutoTuner.STATE_FAILED
+      this._state === AutoTuner.STATE_OFF ||
+      this._state === AutoTuner.STATE_SUCCEEDED ||
+      this._state === AutoTuner.STATE_FAILED
     )
       this._initTuner(now);
     else if (now - this._lastRunTimestamp < this._sampleTime) return false;
@@ -142,14 +142,14 @@ class AutoTuner {
 
     // check input and change relay state if necessary
     if (
-      this._state == AutoTuner.STATE_RELAY_STEP_UP &&
+      this._state === AutoTuner.STATE_RELAY_STEP_UP &&
       inputValue > this._setpoint + this._noiseband
     ) {
       this._state = AutoTuner.STATE_RELAY_STEP_DOWN;
       this.log(`switched state: ${this._state}`);
       this.log(`input: ${inputValue}`);
     } else if (
-      this._state == AutoTuner.STATE_RELAY_STEP_DOWN &&
+      this._state === AutoTuner.STATE_RELAY_STEP_DOWN &&
       inputValue < this._setpoint - this._noiseband
     ) {
       this._state = AutoTuner.STATE_RELAY_STEP_UP;
