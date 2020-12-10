@@ -4,12 +4,42 @@
     color: "#a6bbcf",
     defaults: {
       name: { value: "" },
+      outstep: { value: 100 },
+      maxout: { value: 100 },
+      lookback: { value: 30 },
+      setpoint: { value: 65 },
+      setpointType: { value: "num" }
     },
     inputs: 1,
-    outputs: 2,
+    outputs: 3,
     //icon: "icon-192x192.png",
     label: function () {
       return this.name || "pid-autotune";
+    },
+    oneditprepare: function () {
+      $("#node-input-outstep").typedInput({
+        default: "num",
+        types: ["num"],
+        typeField: "#node-input-outstep-typed",
+      });
+      $("#node-input-maxout").typedInput({
+        default: "num",
+        types: ["num"],
+        typeField: "#node-input-maxout-typed",
+      });
+      $("#node-input-lookback").typedInput({
+        default: "num",
+        types: ["num"],
+        typeField: "#node-input-lookback-typed",
+      });
+      $("#node-input-setpoint").typedInput({
+        default: this.setpointType || "num",
+        types: ["num", "msg", "flow", "global"],
+        typeField: "#node-input-setpoint-typed",
+      });
+    },
+    oneditsave: function () {
+      this.setpointType = $("#node-input-setpoint").typedInput("type");
     },
   });
 </script>
@@ -18,6 +48,26 @@
   <div class="form-row">
     <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
     <input type="text" id="node-input-name" placeholder="Name" />
+  </div>
+  <div class="form-row">
+    <label>Output step %</label>
+    <input type="text" id="node-input-outstep" style="width:70%;" />
+    <input type="hidden" id="node-input-outstep-typed" />
+  </div>
+  <div class="form-row">
+    <label>Max. output %</label>
+    <input type="text" id="node-input-maxout" style="width:70%;" />
+    <input type="hidden" id="node-input-maxout-typed" />
+  </div>
+  <div class="form-row">
+    <label>Lookback sec.</label>
+    <input type="text" id="node-input-lookback" style="width:70%;" />
+    <input type="hidden" id="node-input-lookback-typed" />
+  </div>
+  <div class="form-row">
+    <label>Setpoint</label>
+    <input type="text" id="node-input-setpoint" style="width:70%;" />
+    <input type="hidden" id="node-input-setpoint-typed" />
   </div>
 </script>
 

@@ -7,19 +7,37 @@ module.exports = function (RED) {
     return new Promise(resolve => setTimeout(resolve, sec * 1000));
   }
 
-  function PidAutotune(config) {
+  async function PidAutotune(config) {
     RED.nodes.createNode(this, config);
     var node = this;
 
     const sampleTime = 5;
     const waitTime = 5;
-    const outstep = 100;
-    const outmax = 100;
-    const lookbackSec = 30;
+    const outstep = config.outstep || 100;
+    const outmax = config.maxout || 100;
+    const lookbackSec = config.lookback || 30;
     const setpoint = 65;
 
     function log(log) {
-      node.send([null, log]);
+      node.send([null, null, log]);
+    }
+
+    function getSetpoint(msg) {
+      return new Promise(function (resolve) {
+        if (config.setpointType === "num") {
+          resolve(config.setpoint);
+        } else if (config.setpointType === "msg") {
+          resolve(msg[config.setpoint]);
+        } else {
+          RED.util.evaluateNodeProperty(config.setpoint, config.setpointType, node, msg, (err, value) => {
+            if (err) {
+              resolve("");
+            } else {
+              resolve(value);
+            }
+          });
+        }
+      });
     }
 
     const atune = new AutoTuner({
