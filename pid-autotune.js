@@ -7,7 +7,7 @@ module.exports = function (RED) {
     return new Promise(resolve => setTimeout(resolve, sec * 1000));
   }
 
-  async function PidAutotune(config) {
+  function PidAutotune(config) {
     RED.nodes.createNode(this, config);
     var node = this;
 

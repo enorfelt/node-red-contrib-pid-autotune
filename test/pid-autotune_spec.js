@@ -40,7 +40,17 @@ describe("pid-autotune node", function () {
   }
 
   it("should load node", function (done) {
-    var flow = [{ id: "n1", type: "pid-autotune", name: "pid-autotune" }];
+    var flow = [{ 
+      id: "n1",
+      z: "flow",
+      type: "pid-autotune",
+      name: "pid-autotune",
+      outstep: 100,
+      maxout: 100,
+      lookback: 30,
+      setpoint: 65,
+      setpointType: "num"
+     }];
     helper.load(pidAutotune, flow, function () {
       var n1 = helper.getNode("n1");
       should(n1).have.property("name", "pid-autotune");
