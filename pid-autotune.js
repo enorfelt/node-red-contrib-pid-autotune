@@ -3,23 +3,25 @@ module.exports = function (RED) {
 
   const AutoTuner = require('./core/pid-autotuner');
 
-  function sleep(sec) {
-    return new Promise(resolve => setTimeout(resolve, sec * 1000));
-  }
-
   function PidAutotune(config) {
     RED.nodes.createNode(this, config);
     var node = this;
 
-    const sampleTime = 5;
-    const waitTime = 5;
-    const outstep = config.outstep || 100;
-    const outmax = config.maxout || 100;
-    const lookbackSec = config.lookback || 30;
-    const setpoint = 65;
+    node.sampleTime = 5;
+    node.waitTime = 5;
+    node.outstep = config.outstep || 100;
+    node.outmax = config.maxout || 100;
+    node.lookbackSec = config.lookback || 30;
+    node.sleep = config.sleep || sleep;
+
+    node.isRunning = false;
 
     function log(log) {
       node.send([null, null, log]);
+    }
+
+    function sleep(sec) {
+      return new Promise(resolve => setTimeout(resolve, sec * 1000));
     }
 
     function getSetpoint(msg) {
@@ -40,35 +42,52 @@ module.exports = function (RED) {
       });
     }
 
-    const atune = new AutoTuner({
-      setpoint: setpoint,
-      outputstep: outstep,
-      sampleTimeSec: sampleTime,
-      lookbackSec: lookbackSec,
-      outputMin: 0,
-      outputMax: outmax,
-      logFn: log
-    })
-
-    node.on("input", async function (msg, send, done) {
-      try {
-
+    function startAutoTune(msg) {
+      return new Promise(async (reslove, reject) => {
+        const setpoint = await getSetpoint(msg);
+        const atune = new AutoTuner({
+          setpoint: setpoint,
+          outputstep: node.outstep,
+          sampleTimeSec: node.sampleTime,
+          lookbackSec: node.lookbackSec,
+          outputMin: 0,
+          outputMax: node.outmax,
+          logFn: log
+        });
         while (!atune.run(60)) {
           const heat_percent = atune.output;
-          const heating_time = sampleTime * heat_percent / 100;
-          const waitTime = sampleTime - heating_time;
-          if (heating_time === sampleTime) {
+          const heating_time = node.sampleTime * heat_percent / 100;
+          const waitTime = node.sampleTime - heating_time;
+          if (heating_time === node.sampleTime) {
             // TODO turn heater on
-            await sleep(heating_time)
-          } else if(waitTime === sampleTime) {
+            await node.sleep(heating_time)
+          } else if(waitTime === node.sampleTime) {
             // TODO turn heater off
-            await sleep(waitTime)
+            await node.sleep(waitTime)
           } else {
             // TODO turn heter on
-            await sleep(heating_time);
+            await node.sleep(heating_time);
             // TODO turn heater off
-            await sleep(waitTime);
+            await node.sleep(waitTime);
           }
+        }
+      });
+    }
+
+    node.on("input", function (msg, send, done) {
+      try {
+        
+        if (node.isRunning === false) {
+          startAutoTune(msg)
+            .then(function(result) {
+              send([result, null, null]);
+              node.isRunning = false;
+              if (done) done();
+            })
+            .catch(function(reason) {
+              if (done) done(reason);
+            });
+            node.isRunning = true;
         }
         
         if (done) done();
