@@ -1,9 +1,15 @@
+const rewiremock =  require('./rewiremock');
 const helper = require("node-red-node-test-helper");
 var Context = require("@node-red/runtime/lib/nodes/context");
 var should = require("should");
-const pidAutotune = require("../pid-autotune");
+
+// rewiremock('../core/pid-autotuner').with({}).toBeUsed();
+
+const pidAutotune = rewiremock.proxy(() => require("../pid-autotune"));
+rewiremock('../core/deque').disable();
 
 helper.init(require.resolve("node-red"));
+
 
 describe("pid-autotune node", function () {
   beforeEach(function (done) {

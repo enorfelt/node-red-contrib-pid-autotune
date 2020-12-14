@@ -129,7 +129,6 @@ class AutoTuner {
 
   run(inputValue) {
     const now = this._getTimeMs();
-
     if (
       this._state === AutoTuner.STATE_OFF ||
       this._state === AutoTuner.STATE_SUCCEEDED ||

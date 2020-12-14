@@ -29,6 +29,7 @@
     "mocha": "^8.2.1",
     "node-red": "^1.2.6",
     "node-red-node-test-helper": "^0.2.5",
+    "rewiremock": "^3.14.3",
     "should": "^13.2.3"
   },
   "dependencies": {}

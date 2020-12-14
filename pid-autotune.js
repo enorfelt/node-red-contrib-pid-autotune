@@ -1,7 +1,8 @@
+const { resolve } = require('rewiremock/node');
+const AutoTuner = require('./core/pid-autotuner');
+
 module.exports = function (RED) {
   "use strict";
-
-  const AutoTuner = require('./core/pid-autotuner');
 
   function PidAutotune(config) {
     RED.nodes.createNode(this, config);
@@ -43,7 +44,7 @@ module.exports = function (RED) {
     }
 
     function startAutoTune(msg) {
-      return new Promise(async (reslove, reject) => {
+      return new Promise(async (resolve, reject) => {
         const setpoint = await getSetpoint(msg);
         const atune = new AutoTuner({
           setpoint: setpoint,
@@ -71,6 +72,7 @@ module.exports = function (RED) {
             await node.sleep(waitTime);
           }
         }
+        resolve(atune.getPIDParameters());
       });
     }
 
