@@ -8,7 +8,10 @@
       maxout: { value: 100 },
       lookback: { value: 30 },
       setpoint: { value: 65 },
-      setpointType: { value: "num" }
+      setpointType: { value: "num" },
+      tempVariable: { value: "payload" },
+      tempVariableType: { value: "msg" },
+      tempVariableMsgTopic: { value: "temp-BK" }
     },
     inputs: 1,
     outputs: 3,
@@ -37,9 +40,15 @@
         types: ["num", "msg", "flow", "global"],
         typeField: "#node-input-setpoint-typed",
       });
+      $("#node-input-temp-variable").typedInput({
+        default: this.tempVariableType || "msg",
+        types: ["msg", "flow", "global"],
+        typeField: "#node-input-temp-variable-typed",
+      });
     },
     oneditsave: function () {
       this.setpointType = $("#node-input-setpoint").typedInput("type");
+      this.tempVariableType = $("#node-input-temp-variable").typedInput("type");
     },
   });
 </script>
@@ -68,6 +77,15 @@
     <label>Setpoint</label>
     <input type="text" id="node-input-setpoint" style="width:70%;" />
     <input type="hidden" id="node-input-setpoint-typed" />
+  </div>
+  <div class="form-row">
+    <label>Temp.</label>
+    <input type="text" id="node-input-temp-variable" style="width:70%;" />
+    <input type="hidden" id="node-input-temp-variable-typed" />
+  </div>
+  <div class="form-row">
+    <label>Temp. topic</label>
+    <input type="text" id="node-input-temp-variable-msg-topic" />
   </div>
 </script>
 

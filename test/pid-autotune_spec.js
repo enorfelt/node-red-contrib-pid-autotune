@@ -93,10 +93,77 @@ describe("pid-autotune node", function () {
         var n1 = helper.getNode("n1");
         var n2 = helper.getNode("n2");
         n2.on("input", (function(msg) {
+          should(msg.payload).have.ownProperty("Kp");
+          should(msg.payload).have.ownProperty("Ki");
+          should(msg.payload).have.ownProperty("Kd");
           done();
         }));
 
         n1.receive({ payload: {} });
+        n1.receive({ payload: {} });
+      });
+    });
+  });
+
+  it("should send log on third output", function (done) {
+    var flow = [
+      {
+        id: "n1",
+        // z: "flow",
+        type: "pid-autotune",
+        name: "pid-autotune",
+        outstep: 100,
+        maxout: 100,
+        lookback: 30,
+        setpoint: 65,
+        setpointType: "num",
+        wires: [[],[],["n2"]]
+      },
+      { id: "n2", type: "helper" },
+    ];
+    helper.load(pidAutotune, flow, function () {
+      initContext(function () {
+        var n1 = helper.getNode("n1");
+        var n2 = helper.getNode("n2");
+        n2.on("input", (function(msg) {
+          should(msg.payload).startWith("inputValue ");
+          done();
+        }));
+
+        n1.receive({ payload: {} });
+      });
+    });
+  });
+
+  it("should get current temp from input message", function (done) {
+    var flow = [
+      {
+        id: "n1",
+        // z: "flow",
+        type: "pid-autotune",
+        name: "pid-autotune",
+        outstep: 100,
+        maxout: 100,
+        lookback: 30,
+        setpoint: 65,
+        setpointType: "num",
+        tempVariable: "payload",
+        tempVariableType: "msg",
+        tempVariableMsgTopic: "temp-BK",
+        wires: [[],[],["n2"]]
+      },
+      { id: "n2", type: "helper" },
+    ];
+    helper.load(pidAutotune, flow, function () {
+      initContext(function () {
+        var n1 = helper.getNode("n1");
+        var n2 = helper.getNode("n2");
+        n2.on("input", (function(msg) {
+          should(msg.payload).startWith("inputValue 65");
+          done();
+        }));
+
+        n1.receive({ payload: 65, topic: "temp-BK" });
       });
     });
   });

@@ -4,7 +4,7 @@
 class AutoTuner {
   
   constructor(config) {
-    
+    this._logFn = config.logFn;
   }
 
   get state() {
@@ -24,11 +24,12 @@ class AutoTuner {
   }
 
   log(text) {
+    this._logFn(text);
   }
 
   run(inputValue) {
+    this.log(`inputValue ${inputValue}`);
     return true;
-    
   }
 
   _currentTimeMs() {

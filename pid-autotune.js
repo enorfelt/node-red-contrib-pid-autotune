@@ -18,7 +18,7 @@ module.exports = function (RED) {
     node.isRunning = false;
 
     function log(log) {
-      node.send([null, null, log]);
+      node.send([null, null, {payload: log}]);
     }
 
     function sleep(sec) {
@@ -40,6 +40,11 @@ module.exports = function (RED) {
             }
           });
         }
+      });
+    }
+
+    function getCurrentTemp() {
+      return new Promise(function (resolve, reject) {
       });
     }
 
@@ -82,12 +87,15 @@ module.exports = function (RED) {
         if (node.isRunning === false) {
           startAutoTune(msg)
             .then(function(result) {
-              send([result, null, null]);
-              node.isRunning = false;
+              msg.payload = result;
+              send([msg, null, null]);
               if (done) done();
             })
             .catch(function(reason) {
               if (done) done(reason);
+            })
+            .finally(function() {
+              node.isRunning = false;
             });
             node.isRunning = true;
         }
