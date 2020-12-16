@@ -1,26 +1,26 @@
 var should = require("should");
 var deque = require("../core/deque");
 var Kettle = require("./utils/kettle");
-const AutoTuner = require("../core/pid-autotuner");
+const autoTuner = require("../core/pid-autotuner");
 
 describe("AutoTuner", function () {
   
 
   describe("init", function () {
     it("should create AutoTuner", function (done) {
-      const autoTuner = new AutoTuner({ setpoint: 65 });
+      autoTuner.init({ setpoint: 65 });
       done();
     });
 
     it("should use current time if not supplied", function (done) {
-      const autoTuner = new AutoTuner({ setpoint: 65 });
+      autoTuner.init({ setpoint: 65 });
       var currentTimeMs = autoTuner._getTimeMs();
       should(currentTimeMs).be.above(1607437037954);
       done();
     });
 
     it("should use supplied current time", function (done) {
-      const autoTuner = new AutoTuner({
+      autoTuner.init({
         setpoint: 65,
         getTimeMs: function () {
           return 10;
@@ -34,7 +34,7 @@ describe("AutoTuner", function () {
 
   describe("getPIDParameters", function () {
     it("should return pid parameters for brewing", function (done) {
-      const autoTuner = new AutoTuner(brewingConfig);
+      autoTuner.init(brewingConfig);
       var params = autoTuner.getPIDParameters("brewing");
       should(params.Kp).be.eql(0);
       done();
@@ -79,9 +79,11 @@ describe("AutoTuner", function () {
         delayed_temps.append(kettleTemp);
       }
 
+      autoTuner.init(brewingConfig);
+
       const sim = {
         name: "autotune",
-        sut: new AutoTuner(brewingConfig),
+        sut: autoTuner,
         kettle: new Kettle(35, 40, kettleTemp),
         delayed_temps: delayed_temps,
         timestamps: [],
@@ -101,8 +103,7 @@ describe("AutoTuner", function () {
         timestamp += updateArgs.sampletime
         sim_update(sim, timestamp, sim.sut.output, updateArgs)
       }
-
-      should(sim.sut.state).be.eql(AutoTuner.STATE_SUCCEEDED);
+      should(sim.sut.state).be.eql("succeeded");
 
       const pidParams = sim.sut.getPIDParameters('brewing');
       should(pidParams.Kp).be.eql(75.45758866136876)

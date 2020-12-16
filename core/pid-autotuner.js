@@ -47,7 +47,7 @@ class AutoTuner {
     logFn = undefined
     }
 */
-  constructor(config) {
+  init(config) {
     var lookbackSec = config.lookbackSec || 60;
     var sampleTimeSec = config.sampleTimeSec || 5;
     var outputstep = config.outputstep || 10;
@@ -273,5 +273,5 @@ class AutoTuner {
     this._state = AutoTuner.STATE_RELAY_STEP_UP;
   }
 }
-
-module.exports = AutoTuner;
+const autoTuner = new AutoTuner();
+module.exports = autoTuner;

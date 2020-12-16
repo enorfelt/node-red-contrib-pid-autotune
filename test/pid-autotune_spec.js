@@ -1,18 +1,20 @@
-const rewiremock =  require('./rewiremock');
 const helper = require("node-red-node-test-helper");
 var Context = require("@node-red/runtime/lib/nodes/context");
 var should = require("should");
 
-// rewiremock('../core/pid-autotuner').with({}).toBeUsed();
+var sinon = require("sinon");
 
-const pidAutotune = rewiremock.proxy(() => require("../pid-autotune"));
-rewiremock('../core/deque').disable();
+const pidAutotune = require("../pid-autotune");
+const autoTuner = require("../core/pid-autotuner");
 
 helper.init(require.resolve("node-red"));
 
-
 describe("pid-autotune node", function () {
   beforeEach(function (done) {
+    sinon.stub(autoTuner, "run").callsFake(function (inputValue) {
+      autoTuner.log(`inputValue ${inputValue}`);
+      return true;
+    });
     helper.startServer(done);
   });
 
@@ -27,6 +29,7 @@ describe("pid-autotune node", function () {
       })
       .then(function () {
         helper.stopServer(done);
+        sinon.restore();
       });
   });
 
@@ -84,7 +87,8 @@ describe("pid-autotune node", function () {
         lookback: 30,
         setpoint: 65,
         setpointType: "num",
-        wires: [["n2"]]
+        tempVariableMsgTopic: "temp-BK",
+        wires: [["n2"]],
       },
       { id: "n2", type: "helper" },
     ];
@@ -92,15 +96,14 @@ describe("pid-autotune node", function () {
       initContext(function () {
         var n1 = helper.getNode("n1");
         var n2 = helper.getNode("n2");
-        n2.on("input", (function(msg) {
+        n2.on("input", function (msg) {
           should(msg.payload).have.ownProperty("Kp");
           should(msg.payload).have.ownProperty("Ki");
           should(msg.payload).have.ownProperty("Kd");
           done();
-        }));
+        });
 
-        n1.receive({ payload: {} });
-        n1.receive({ payload: {} });
+        n1.receive({ payload: 65, topic: "temp-BK" });
       });
     });
   });
@@ -117,7 +120,8 @@ describe("pid-autotune node", function () {
         lookback: 30,
         setpoint: 65,
         setpointType: "num",
-        wires: [[],[],["n2"]]
+        tempVariableMsgTopic: "temp-BK",
+        wires: [[], [], ["n2"]],
       },
       { id: "n2", type: "helper" },
     ];
@@ -125,12 +129,12 @@ describe("pid-autotune node", function () {
       initContext(function () {
         var n1 = helper.getNode("n1");
         var n2 = helper.getNode("n2");
-        n2.on("input", (function(msg) {
-          should(msg.payload).startWith("inputValue ");
+        n2.on("input", function (msg) {
+          should(msg.payload).endWith("inputValue 65");
           done();
-        }));
+        });
 
-        n1.receive({ payload: {} });
+        n1.receive({ payload: 65, topic: "temp-BK" });
       });
     });
   });
@@ -150,7 +154,7 @@ describe("pid-autotune node", function () {
         tempVariable: "payload",
         tempVariableType: "msg",
         tempVariableMsgTopic: "temp-BK",
-        wires: [[],[],["n2"]]
+        wires: [[], [], ["n2"]],
       },
       { id: "n2", type: "helper" },
     ];
@@ -158,12 +162,84 @@ describe("pid-autotune node", function () {
       initContext(function () {
         var n1 = helper.getNode("n1");
         var n2 = helper.getNode("n2");
-        n2.on("input", (function(msg) {
-          should(msg.payload).startWith("inputValue 65");
+        n2.on("input", function (msg) {
+          should(msg.payload).endWith("inputValue 65");
           done();
-        }));
+        });
 
         n1.receive({ payload: 65, topic: "temp-BK" });
+      });
+    });
+  });
+
+  it("should get current temp from flow variable", function (done) {
+    var flow = [
+      {
+        id: "n1",
+        z: "flow",
+        type: "pid-autotune",
+        name: "pid-autotune",
+        outstep: 100,
+        maxout: 100,
+        lookback: 30,
+        setpoint: 65,
+        setpointType: "num",
+        tempVariable: "#:(memory1)::temp-BK",
+        tempVariableType: "flow",
+        tempVariableMsgTopic: "temp-BK",
+        wires: [[], [], ["n2"]],
+      },
+      { id: "n2", type: "helper" },
+    ];
+    helper.load(pidAutotune, flow, function () {
+      initContext(function () {
+        var n1 = helper.getNode("n1");
+        var n2 = helper.getNode("n2");
+        n2.on("input", function (msg) {
+          should(msg.payload).endWith("inputValue 75");
+          done();
+        });
+        var context = n1.context();
+        var f = context.flow;
+        f.set("temp-BK", 75, "memory1", function () {
+          n1.receive({});
+        });
+      });
+    });
+  });
+
+  it("should get current temp from global variable", function (done) {
+    var flow = [
+      {
+        id: "n1",
+        z: "flow",
+        type: "pid-autotune",
+        name: "pid-autotune",
+        outstep: 100,
+        maxout: 100,
+        lookback: 30,
+        setpoint: 65,
+        setpointType: "num",
+        tempVariable: "#:(memory1)::temp-BK",
+        tempVariableType: "global",
+        tempVariableMsgTopic: "temp-BK",
+        wires: [[], [], ["n2"]],
+      },
+      { id: "n2", type: "helper" },
+    ];
+    helper.load(pidAutotune, flow, function () {
+      initContext(function () {
+        var n1 = helper.getNode("n1");
+        var n2 = helper.getNode("n2");
+        n2.on("input", function (msg) {
+          should(msg.payload).endWith("inputValue 72");
+          done();
+        });
+        var context = n1.context();
+        var g = context.global;
+        g.set("temp-BK", 72, "memory1", function () {
+          n1.receive({});
+        });
       });
     });
   });

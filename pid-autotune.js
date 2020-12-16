@@ -1,5 +1,4 @@
-const { resolve } = require('rewiremock/node');
-const AutoTuner = require('./core/pid-autotuner');
+const autoTuner = require("./core/pid-autotuner");
 
 module.exports = function (RED) {
   "use strict";
@@ -15,14 +14,20 @@ module.exports = function (RED) {
     node.lookbackSec = config.lookback || 30;
     node.sleep = config.sleep || sleep;
 
+    node.tempVariable = config.tempVariable || "payload";
+    node.tempVariableType = config.tempVariableType || "msg";
+    node.tempVariableMsgTopic = config.tempVariableMsgTopic || "temp-BK";
+
     node.isRunning = false;
 
+    node.latestTempReading = -1;
+
     function log(log) {
-      node.send([null, null, {payload: log}]);
+      node.send([null, null, { payload: log }]);
     }
 
     function sleep(sec) {
-      return new Promise(resolve => setTimeout(resolve, sec * 1000));
+      return new Promise((resolve) => setTimeout(resolve, sec * 1000));
     }
 
     function getSetpoint(msg) {
@@ -32,79 +37,110 @@ module.exports = function (RED) {
         } else if (config.setpointType === "msg") {
           resolve(msg[config.setpoint]);
         } else {
-          RED.util.evaluateNodeProperty(config.setpoint, config.setpointType, node, msg, (err, value) => {
-            if (err) {
-              resolve("");
-            } else {
-              resolve(value);
+          RED.util.evaluateNodeProperty(
+            config.setpoint,
+            config.setpointType,
+            node,
+            msg,
+            (err, value) => {
+              if (err) {
+                resolve("");
+              } else {
+                resolve(value);
+              }
             }
-          });
+          );
         }
       });
     }
 
     function getCurrentTemp() {
       return new Promise(function (resolve, reject) {
+        if (node.tempVariableType === "msg") {
+          node.latestTempReading > -1
+            ? resolve(node.latestTempReading)
+            : reject("No temp. reading registered");
+        } else {
+          RED.util.evaluateNodeProperty(
+            config.tempVariable,
+            config.tempVariableType,
+            node,
+            {},
+            (err, value) => {
+              if (err) {
+                reject("Unable to read temperature");
+              } else {
+                resolve(value);
+              }
+            }
+          );
+        }
       });
     }
 
     function startAutoTune(msg) {
       return new Promise(async (resolve, reject) => {
-        const setpoint = await getSetpoint(msg);
-        const atune = new AutoTuner({
-          setpoint: setpoint,
-          outputstep: node.outstep,
-          sampleTimeSec: node.sampleTime,
-          lookbackSec: node.lookbackSec,
-          outputMin: 0,
-          outputMax: node.outmax,
-          logFn: log
-        });
-        while (!atune.run(60)) {
-          const heat_percent = atune.output;
-          const heating_time = node.sampleTime * heat_percent / 100;
-          const waitTime = node.sampleTime - heating_time;
-          if (heating_time === node.sampleTime) {
-            // TODO turn heater on
-            await node.sleep(heating_time)
-          } else if(waitTime === node.sampleTime) {
-            // TODO turn heater off
-            await node.sleep(waitTime)
-          } else {
-            // TODO turn heter on
-            await node.sleep(heating_time);
-            // TODO turn heater off
-            await node.sleep(waitTime);
+        try {
+          const setpoint = await getSetpoint(msg);
+          autoTuner.init({
+            setpoint: setpoint,
+            outputstep: node.outstep,
+            sampleTimeSec: node.sampleTime,
+            lookbackSec: node.lookbackSec,
+            outputMin: 0,
+            outputMax: node.outmax,
+            logFn: log,
+          });
+          while (!autoTuner.run(await getCurrentTemp())) {
+            const heat_percent = autoTuner.output;
+            const heating_time = (node.sampleTime * heat_percent) / 100;
+            const waitTime = node.sampleTime - heating_time;
+            if (heating_time === node.sampleTime) {
+              // TODO turn heater on
+              await node.sleep(heating_time);
+            } else if (waitTime === node.sampleTime) {
+              // TODO turn heater off
+              await node.sleep(waitTime);
+            } else {
+              // TODO turn heter on
+              await node.sleep(heating_time);
+              // TODO turn heater off
+              await node.sleep(waitTime);
+            }
           }
+          resolve(autoTuner.getPIDParameters());
+        } catch (e) {
+          reject(e);
         }
-        resolve(atune.getPIDParameters());
       });
     }
 
     node.on("input", function (msg, send, done) {
       try {
-        
+        if (msg.topic === node.tempVariableMsgTopic) {
+          node.latestTempReading = msg.payload;
+        }
+
         if (node.isRunning === false) {
           startAutoTune(msg)
-            .then(function(result) {
+            .then(function (result) {
               msg.payload = result;
               send([msg, null, null]);
               if (done) done();
             })
-            .catch(function(reason) {
+            .catch(function (reason) {
               if (done) done(reason);
             })
-            .finally(function() {
+            .finally(function () {
               node.isRunning = false;
             });
-            node.isRunning = true;
+          node.isRunning = true;
         }
-        
+
         if (done) done();
       } catch (error) {
         if (done) done(error.message || "Something went wrong!");
       }
-
     });
   }
 
