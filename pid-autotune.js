@@ -96,19 +96,19 @@ module.exports = function (RED) {
             const heating_time = (node.sampleTime * heat_percent) / 100;
             const waitTime = node.sampleTime - heating_time;
             if (heating_time === node.sampleTime) {
-              // TODO turn heater on
+              node.send([null, { payload: 100}, null]);
               await node.sleep(heating_time);
             } else if (waitTime === node.sampleTime) {
-              // TODO turn heater off
+              node.send([null, { payload: 0 }, null]);
               await node.sleep(waitTime);
             } else {
-              // TODO turn heter on
+              node.send([null, { payload: 100}, null]);
               await node.sleep(heating_time);
-              // TODO turn heater off
+              node.send([null, { payload: 0}, null]);
               await node.sleep(waitTime);
             }
           }
-          resolve(autoTuner.getPIDParameters());
+          resolve({ state: autoTuner.state, params: autoTuner.getPIDParameters() });
         } catch (e) {
           reject(e);
         }
@@ -122,17 +122,27 @@ module.exports = function (RED) {
         }
 
         if (node.isRunning === false) {
+          var failReason = '';
+          var autoTuneResult = null;
           startAutoTune(msg)
             .then(function (result) {
-              msg.payload = result;
-              send([msg, null, null]);
-              if (done) done();
+              autoTuneResult = result;
             })
             .catch(function (reason) {
-              if (done) done(reason);
+              failReason = reason;
             })
             .finally(function () {
+              if (autoTuneResult !== null) {
+                msg.state = autoTuneResult.state;
+                msg.payload = autoTuneResult.params;
+                send([msg, { payload: 0 }, null]);  
+              } else {
+                send([null, { payload: 0 }, null]);
+              }
               node.isRunning = false;
+              if (done) {
+                failReason === '' ? done() : done(failReason);
+              }
             });
           node.isRunning = true;
         }
