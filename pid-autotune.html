@@ -1,7 +1,7 @@
 <script type="text/javascript">
   RED.nodes.registerType("pid-autotune", {
     category: "brewing",
-    color: "#a6bbcf",
+    color: "#FFCC66",
     defaults: {
       name: { value: "" },
       outstep: { value: 100 },
@@ -15,7 +15,8 @@
     },
     inputs: 1,
     outputs: 3,
-    //icon: "icon-192x192.png",
+    icon: "font-awesome/fa-sliders",
+    outputLabels: ["autotune result", "element output", "autotune log"],
     label: function () {
       return this.name || "pid-autotune";
     },
@@ -40,15 +41,15 @@
         types: ["num", "msg", "flow", "global"],
         typeField: "#node-input-setpoint-typed",
       });
-      $("#node-input-temp-variable").typedInput({
+      $("#node-input-tempVariable").typedInput({
         default: this.tempVariableType || "msg",
         types: ["msg", "flow", "global"],
-        typeField: "#node-input-temp-variable-typed",
+        typeField: "#node-input-tempVariable-typed",
       });
     },
     oneditsave: function () {
       this.setpointType = $("#node-input-setpoint").typedInput("type");
-      this.tempVariableType = $("#node-input-temp-variable").typedInput("type");
+      this.tempVariableType = $("#node-input-tempVariable").typedInput("type");
     },
   });
 </script>
@@ -80,12 +81,12 @@
   </div>
   <div class="form-row">
     <label>Temp.</label>
-    <input type="text" id="node-input-temp-variable" style="width:70%;" />
-    <input type="hidden" id="node-input-temp-variable-typed" />
+    <input type="text" id="node-input-tempVariable" style="width:70%;" />
+    <input type="hidden" id="node-input-tempVariable-typed" />
   </div>
   <div class="form-row">
     <label>Temp. topic</label>
-    <input type="text" id="node-input-temp-variable-msg-topic" />
+    <input type="text" id="node-input-tempVariableMsgTopic" />
   </div>
 </script>
 
