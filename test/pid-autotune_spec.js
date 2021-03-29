@@ -264,22 +264,23 @@ describe("pid-autotune node", function () {
         tempVariableType: "global",
         tempVariableMsgTopic: "temp-BK",
         wires: [["n2"], ["n3"], []],
-        sleep: function(sec) {
-          return new Promise((resolve) => {nrOfSleeps++; resolve();});
-        }
+        nextRun: function (sec, callback) {
+          nrOfSleeps++;
+          setTimeout(callback, 1);
+        },
       },
       { id: "n2", type: "helper" },
       { id: "n3", type: "helper" },
     ];
     var nrOfRuns = 0;
-    runFake = function(inputValue) {
+    runFake = function (inputValue) {
       var result = false;
       if (nrOfRuns > 0) {
         result = true;
       }
       nrOfRuns++;
       return result;
-    }
+    };
     sinon.restore();
     sinon.stub(autoTuner, "run").callsFake(runFake);
     sinon.stub(autoTuner, "output").value(100);
@@ -324,22 +325,23 @@ describe("pid-autotune node", function () {
         tempVariableType: "global",
         tempVariableMsgTopic: "temp-BK",
         wires: [["n2"], ["n3"], []],
-        sleep: function(sec) {
-          return new Promise((resolve) => {nrOfSleeps++; resolve();});
-        }
+        nextRun: function (sec, callback) {
+          nrOfSleeps++;
+          setTimeout(callback, 1);
+        },
       },
       { id: "n2", type: "helper" },
       { id: "n3", type: "helper" },
     ];
     var nrOfRuns = 0;
-    runFake = function(inputValue) {
+    runFake = function (inputValue) {
       var result = false;
       if (nrOfRuns > 0) {
         result = true;
       }
       nrOfRuns++;
       return result;
-    }
+    };
 
     sinon.restore();
     sinon.stub(autoTuner, "run").callsFake(runFake);
@@ -385,22 +387,23 @@ describe("pid-autotune node", function () {
         tempVariableType: "global",
         tempVariableMsgTopic: "temp-BK",
         wires: [["n2"], ["n3"], []],
-        sleep: function(sec) {
-          return new Promise((resolve) => {nrOfSleeps++; resolve();});
-        }
+        nextRun: function (sec, callback) {
+          nrOfSleeps++;
+          setTimeout(callback, 1);
+        },
       },
       { id: "n2", type: "helper" },
       { id: "n3", type: "helper" },
     ];
     var nrOfRuns = 0;
-    runFake = function(inputValue) {
+    runFake = function (inputValue) {
       var result = false;
       if (nrOfRuns > 0) {
         result = true;
       }
       nrOfRuns++;
       return result;
-    }
+    };
 
     sinon.restore();
     sinon.stub(autoTuner, "run").callsFake(runFake);
@@ -419,6 +422,66 @@ describe("pid-autotune node", function () {
         });
         n3.on("input", function (msg) {
           elementCycle++;
+        });
+        var context = n1.context();
+        var g = context.global;
+        g.set("temp-BK", 60, "memory1", function () {
+          n1.receive({});
+        });
+      });
+    });
+  });
+
+  it("should start heater and sleep with maxout set to 50", function (done) {
+    var nrOfSleeps = 0;
+    var flow = [
+      {
+        id: "n1",
+        z: "flow",
+        type: "pid-autotune",
+        name: "pid-autotune",
+        outstep: 100,
+        maxout: 50,
+        lookback: 30,
+        setpoint: 65,
+        setpointType: "num",
+        tempVariable: "#:(memory1)::temp-BK",
+        tempVariableType: "global",
+        tempVariableMsgTopic: "temp-BK",
+        wires: [["n2"], ["n3"], []],
+        nextRun: function (sec, callback) {
+          nrOfSleeps++;
+          setTimeout(callback, 1);
+        },
+      },
+      { id: "n2", type: "helper" },
+      { id: "n3", type: "helper" },
+    ];
+    var nrOfRuns = 0;
+    runFake = function (inputValue) {
+      var result = false;
+      if (nrOfRuns > 0) {
+        result = true;
+      }
+      nrOfRuns++;
+      return result;
+    };
+    sinon.restore();
+    sinon.stub(autoTuner, "run").callsFake(runFake);
+    sinon.stub(autoTuner, "output").value(50);
+
+    helper.load(pidAutotune, flow, function () {
+      initContext(function () {
+        var n1 = helper.getNode("n1");
+        var n2 = helper.getNode("n2");
+        var n3 = helper.getNode("n3");
+        var maxHeaterPayload = 0;
+        n2.on("input", function (msg) {
+          should(maxHeaterPayload).eql(50);
+          done();
+        });
+        n3.on("input", function (msg) {
+          maxHeaterPayload = msg.payload > maxHeaterPayload ? msg.payload : maxHeaterPayload;
         });
         var context = n1.context();
         var g = context.global;

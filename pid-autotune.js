@@ -7,12 +7,15 @@ module.exports = function (RED) {
     RED.nodes.createNode(this, config);
     var node = this;
 
+    const RUNNING_EVENT_NAME = "AUTOTUNER_RUNNING";
+    const COMPLETED_EVENT_NAME = "AUTOTUNER_COMPLETED";
+
     node.sampleTime = 5;
     node.waitTime = 5;
     node.outstep = config.outstep || 100;
     node.outmax = config.maxout || 100;
     node.lookbackSec = config.lookback || 30;
-    node.sleep = config.sleep || sleep;
+    node.nextRun = config.nextRun || sleep;
 
     node.tempVariable = config.tempVariable || "payload";
     node.tempVariableType = config.tempVariableType || "msg";
@@ -26,8 +29,8 @@ module.exports = function (RED) {
       node.send([null, null, { payload: log }]);
     }
 
-    function sleep(sec) {
-      return new Promise((resolve) => setTimeout(resolve, sec * 1000));
+    function sleep(sec, callback) {
+      setTimeout(callback, sec * 1000);
     }
 
     function getSetpoint(msg) {
@@ -78,42 +81,61 @@ module.exports = function (RED) {
       });
     }
 
-    function startAutoTune(msg) {
-      return new Promise(async (resolve, reject) => {
-        try {
-          const setpoint = await getSetpoint(msg);
-          autoTuner.init({
-            setpoint: setpoint,
-            outputstep: node.outstep,
-            sampleTimeSec: node.sampleTime,
-            lookbackSec: node.lookbackSec,
-            outputMin: 0,
-            outputMax: node.outmax,
-            logFn: log,
-          });
-          while (!autoTuner.run(await getCurrentTemp())) {
-            const heat_percent = autoTuner.output;
-            const heating_time = (node.sampleTime * heat_percent) / 100;
-            const waitTime = node.sampleTime - heating_time;
-            if (heating_time === node.sampleTime) {
-              node.send([null, { payload: 100}, null]);
-              await node.sleep(heating_time);
-            } else if (waitTime === node.sampleTime) {
-              node.send([null, { payload: 0 }, null]);
-              await node.sleep(waitTime);
-            } else {
-              node.send([null, { payload: 100}, null]);
-              await node.sleep(heating_time);
-              node.send([null, { payload: 0}, null]);
-              await node.sleep(waitTime);
-            }
-          }
-          resolve({ state: autoTuner.state, params: autoTuner.getPIDParameters() });
-        } catch (e) {
-          reject(e);
-        }
-      });
+    async function runAutoTuner() {
+      var completed = autoTuner.run(await getCurrentTemp());
+      if (completed) {
+        node.emit(COMPLETED_EVENT_NAME, {
+          state: autoTuner.state,
+          params: autoTuner.getPIDParameters(),
+        });
+        return;
+      }
+
+      const heat_percent = autoTuner.output;
+      const heating_time = (node.sampleTime * heat_percent) / 100;
+      const waitTime = node.sampleTime - heating_time;
+      if (heating_time === node.sampleTime) {
+        node.emit(RUNNING_EVENT_NAME, heat_percent);
+        node.nextRun(heating_time, runAutoTuner);
+      } else if (waitTime === node.sampleTime) {
+        node.emit(RUNNING_EVENT_NAME, 0);
+        node.nextRun(waitTime, runAutoTuner);
+      } else {
+        node.emit(RUNNING_EVENT_NAME, heat_percent);
+        node.nextRun(heating_time, function() {
+          node.emit(RUNNING_EVENT_NAME, 0);
+          node.nextRun(waitTime, runAutoTuner);
+        });
+      }
     }
+
+    async function startAutoTune(msg) {
+      const setpoint = await getSetpoint(msg);
+      autoTuner.init({
+        setpoint: setpoint,
+        outputstep: node.outstep,
+        sampleTimeSec: node.sampleTime,
+        lookbackSec: node.lookbackSec,
+        outputMin: 0,
+        outputMax: node.outmax,
+        logFn: log,
+      });
+
+      runAutoTuner();
+    }
+
+    node.on(RUNNING_EVENT_NAME, function (output) {
+      node.send([null, { payload: output }, null]);
+    });
+
+    node.on(COMPLETED_EVENT_NAME, function (result) {
+      node.isRunning = false;
+      node.send([
+        { state: result.state, payload: result.params },
+        { payload: 0 },
+        null,
+      ]);
+    });
 
     node.on("input", function (msg, send, done) {
       try {
@@ -122,28 +144,7 @@ module.exports = function (RED) {
         }
 
         if (node.isRunning === false) {
-          var failReason = '';
-          var autoTuneResult = null;
-          startAutoTune(msg)
-            .then(function (result) {
-              autoTuneResult = result;
-            })
-            .catch(function (reason) {
-              failReason = reason;
-            })
-            .finally(function () {
-              if (autoTuneResult !== null) {
-                msg.state = autoTuneResult.state;
-                msg.payload = autoTuneResult.params;
-                send([msg, { payload: 0 }, null]);  
-              } else {
-                send([null, { payload: 0 }, null]);
-              }
-              node.isRunning = false;
-              if (done) {
-                failReason === '' ? done() : done(failReason);
-              }
-            });
+          startAutoTune(msg);
           node.isRunning = true;
         }
 
