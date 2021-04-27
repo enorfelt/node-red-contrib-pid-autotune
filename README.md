@@ -50,7 +50,7 @@ A node to simulate a kettle in a brew rig
 
 ### Output
 
-1. msg.payload contains the calculated temperature of the kette. Also msg.power is the input value heater percentage.
+1. msg.payload contains the calculated temperature of the kettle. Also msg.power is the input value heater percentage.
 
 ### Configuration
 
