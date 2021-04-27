@@ -1,0 +1,100 @@
+<script type="text/javascript">
+  RED.nodes.registerType("kettle-sim", {
+    category: "brewing",
+    color: "#FFCC66",
+    defaults: {
+      name: { value: "" },
+      diam: { value: 35, type: "num", required: true },
+      volume: { value: 40, type: "num", required: true },
+      temp: { value: 20, type: "num", required: true },
+      power: { value: 2.5, type: "num", required: true },
+      ambientTemp: { value: 20, type: "num", required: true },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: "font-awesome/fa-database",
+    outputLabels: [],
+    label: function () {
+      return this.name || "kettle-sim";
+    },
+    oneditprepare: function () {
+      $("#node-input-diam").typedInput({
+        default: "num",
+        types: ["num"],
+        typeField: "#node-input-diam-typed",
+      });
+      $("#node-input-volume").typedInput({
+        default: "num",
+        types: ["num"],
+        typeField: "#node-input-volume-typed",
+      });
+      $("#node-input-temp").typedInput({
+        default: "num",
+        types: ["num"],
+        typeField: "#node-input-temp-typed",
+      });
+      $("#node-input-power").typedInput({
+        default: "num",
+        types: ["num"],
+        typeField: "#node-input-power-typed",
+      });
+      $("#node-input-ambientTemp").typedInput({
+        default: "num",
+        types: ["num"],
+        typeField: "#node-input-ambientTemp-typed",
+      });
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="kettle-sim">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Name" />
+  </div>
+  <div class="form-row">
+    <label>Diameter (cm)</label>
+    <input type="text" id="node-input-diam" style="width:70%;" />
+    <input type="hidden" id="node-input-diam-typed" />
+  </div>
+  <div class="form-row">
+    <label>Volume (L)</label>
+    <input type="text" id="node-input-volume" style="width:70%;" />
+    <input type="hidden" id="node-input-volume-typed" />
+  </div>
+  <div class="form-row">
+    <label>Initial temp (C)</label>
+    <input type="text" id="node-input-temp" style="width:70%;" />
+    <input type="hidden" id="node-input-temp-typed" />
+  </div>
+  <div class="form-row">
+    <label>Heater power (kW)</label>
+    <input type="text" id="node-input-power" style="width:70%;" />
+    <input type="hidden" id="node-input-power-typed" />
+  </div>
+  <div class="form-row">
+    <label>Kettle ambient temp (C)</label>
+    <input type="text" id="node-input-ambientTemp" style="width:70%;" />
+    <input type="hidden" id="node-input-ambientTemp-typed" />
+  </div>
+</script>
+
+<script type="text/html" data-help-name="kettle-sim">
+  <p>A node to simulate a kettle in a brew rig</p>
+  <h3>Input</h3>
+  <dl class="message-properties">
+    <dt>
+      payload
+      <span class="property-type">num</span>
+    </dt>
+    <dd class="optional">The hetar power percentage (0-100).</dd>
+  </dl>
+  <h3>Output</h3>
+  <dl class="message-properties">
+    <dt>
+      payload
+      <span class="property-type">num</span>
+    </dt>
+    <dd class="optional">The current temperature of the kettle.</dd>
+  </dl>
+</script>
