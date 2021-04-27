@@ -40,6 +40,29 @@ There are three outputs explained in order top to botton.
 | `Temp.`           | From where to read current temp from. msg, flow or global variable.          |
 | `Temp. topic`     | If msg is selected for temp. Specify a topic from where current temp is from.|
 
+## kettle-sim node
+
+A node to simulate a kettle in a brew rig
+
+### Input
+
+1. Set msg.payload to a value between 0 and 100 to set heater power percentage (0-100).
+
+### Output
+
+1. msg.payload contains the calculated temperature of the kettle. Also msg.power is the input value heater percentage.
+
+### Configuration
+
+| Setting                  | Description                                                                        |
+| ------------------------ | -----------------------------------------------------------------------------------|
+| `Name`                   | What ever you name the node                                                        |
+| `Diameter (cm)`          | The kettle diamter in centimeters. Default 35 cm                                   |
+| `Volume (L)`             | The kettle volume in litres. Default 40 L                                          |
+| `Initial temp (C)`       | The initial temp of the kettle content in Celcius. Default 20 C                    |
+| `Heater power (kW)`      | The default heter power in kilowatts. Default 2.5 kW                               |
+| `Kettle ambient temp (C)`| The ambient room temperature, in Celcius, where the kettle is located. Default 20 C|
+
 # Contributing
 
 1. Fork this repo

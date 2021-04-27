@@ -1,6 +1,6 @@
 var should = require("should");
 var deque = require("../core/deque");
-var Kettle = require("./utils/kettle");
+var Kettle = require("../core/kettle");
 const autoTuner = require("../core/pid-autotuner");
 
 describe("AutoTuner", function () {
