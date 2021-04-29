@@ -18,7 +18,7 @@ $ npm install node-red-contrib-pid-autotune
 
 ### Input
 
-1. On input, starts a new autotune process if not started. You can also, continuesly, set current temp with a specific topic.
+1. On input, starts a new autotune process if not started. You can also, continuesly, set current temp with a specific topic. Send 'stop' in cmd property to stop current auto tune process.
 
 ### Outputs
 
