@@ -491,4 +491,116 @@ describe("pid-autotune node", function () {
       });
     });
   });
+
+  it("should log when start and done", function (done) {
+    var nrOfSleeps = 0;
+    var flow = [
+      {
+        id: "n1",
+        z: "flow",
+        type: "pid-autotune",
+        name: "pid-autotune",
+        outstep: 100,
+        maxout: 50,
+        lookback: 30,
+        setpoint: 65,
+        setpointType: "num",
+        tempVariable: "#:(memory1)::temp-BK",
+        tempVariableType: "global",
+        tempVariableMsgTopic: "temp-BK",
+        wires: [[], [], ["n2"]],
+        nextRun: function (sec, callback) {
+          nrOfSleeps++;
+          setTimeout(callback, 1);
+        },
+      },
+      { id: "n2", type: "helper" },
+    ];
+    var nrOfRuns = 0;
+    runFake = function (inputValue) {
+      var result = false;
+      if (nrOfRuns > 0) {
+        result = true;
+      }
+      nrOfRuns++;
+      return result;
+    };
+    sinon.restore();
+    sinon.stub(autoTuner, "run").callsFake(runFake);
+    sinon.stub(autoTuner, "output").value(50);
+
+    helper.load(pidAutotune, flow, function () {
+      initContext(function () {
+        var n1 = helper.getNode("n1");
+        var n2 = helper.getNode("n2");
+        var firstLog = 0;
+        n2.on("input", function (msg) {
+          if (firstLog > 0) {
+            should(msg.payload).endWith("Completed auto tune");
+            done();
+          } else {
+            should(msg.payload).endWith("Starting auto tune");
+          }
+          firstLog++;
+        });
+        var context = n1.context();
+        var g = context.global;
+        g.set("temp-BK", 60, "memory1", function () {
+          n1.receive({});
+        });
+      });
+    });
+  });
+
+  it("should be able to stop auto tune", function (done) {
+    var nrOfSleeps = 0;
+    var flow = [
+      {
+        id: "n1",
+        z: "flow",
+        type: "pid-autotune",
+        name: "pid-autotune",
+        outstep: 100,
+        maxout: 50,
+        lookback: 30,
+        setpoint: 65,
+        setpointType: "num",
+        tempVariable: "#:(memory1)::temp-BK",
+        tempVariableType: "global",
+        tempVariableMsgTopic: "temp-BK",
+        wires: [["n2"], [], []],
+        nextRun: function (sec, callback) {
+          nrOfSleeps++;
+          setTimeout(callback, 1);
+        },
+      },
+      { id: "n2", type: "helper" },
+    ];
+    runFake = function (inputValue) {
+      return false;
+    };
+    sinon.restore();
+    sinon.stub(autoTuner, "run").callsFake(runFake);
+    sinon.stub(autoTuner, "output").value(50);
+
+    helper.load(pidAutotune, flow, function () {
+      initContext(function () {
+        var n1 = helper.getNode("n1");
+        var n2 = helper.getNode("n2");
+        n2.on("input", function (msg) {
+          should(msg.state).eql("stoped");
+          should(msg.payload.Kp).eql(0);
+          should(msg.payload.Ki).eql(0);
+          should(msg.payload.Kd).eql(0);
+          done();
+        });
+        var context = n1.context();
+        var g = context.global;
+        g.set("temp-BK", 60, "memory1", function () {
+          n1.receive({ cmd: "start" });
+          n1.receive({ cmd: "stop" });
+        });
+      });
+    });
+  });
 });
