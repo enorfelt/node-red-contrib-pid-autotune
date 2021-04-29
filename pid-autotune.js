@@ -1,4 +1,3 @@
-const { notDeepEqual } = require("should");
 const autoTuner = require("./core/pid-autotuner");
 
 module.exports = function (RED) {
