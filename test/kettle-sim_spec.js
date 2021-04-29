@@ -298,4 +298,42 @@ describe("kettle-sim node", function () {
       });
     });
   });
+
+  it("should remember heter power and increase temperature", function (done) {
+    var flow = [
+      {
+        id: "n1",
+        // z: "flow",
+        type: "kettle-sim",
+        name: "kettle-sim",
+        diam: 35,
+        volume: 40,
+        temp: 60,
+        power: 5,
+        ambientTemp: 20,
+        wires: [["n2"]],
+      },
+      { id: "n2", type: "helper" },
+    ];
+    helper.load(kettleSim, flow, function () {
+      initContext(function () {
+        var n1 = helper.getNode("n1");
+        var n2 = helper.getNode("n2");
+        var runs = 0;
+        var firstTemp = 0;
+        n2.on("input", function (msg) {
+          if (runs > 0) {
+            should(msg.power).eql(50);
+            should(msg.payload).greaterThan(firstTemp);
+            done();
+          } else {
+            firstTemp = msg.payload;
+            runs++;
+          }
+        });
+        n1.receive({ payload: 50 });
+        n1.receive({ });
+      });
+    });
+  });
 });

@@ -15,8 +15,10 @@ module.exports = function (RED) {
 
     var kettle = new Kette(node.diam, node.volume, node.initTemp);
 
+    node.prevPowerSetting = 0;
+
     function getValidPower(input) {
-      var power = parseFloat(input) || 0;
+      var power = parseFloat(input) || node.prevPowerSetting;
 
       if (power < 0) {
         return 0;
@@ -25,6 +27,8 @@ module.exports = function (RED) {
       if (power > 100) {
         return 100;
       }
+
+      node.prevPowerSetting = power;
 
       return power;
     }
