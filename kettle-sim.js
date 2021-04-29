@@ -18,7 +18,14 @@ module.exports = function (RED) {
     node.prevPowerSetting = 0;
 
     function getValidPower(input) {
-      var power = parseFloat(input) || node.prevPowerSetting;
+      var power = typeof input === "number" ? input : node.prevPowerSetting;
+
+      if (typeof input === "string") {
+        var possibleNewPower = parseFloat(input);
+        if (!isNaN(possibleNewPower)) {
+          power = possibleNewPower;
+        }
+      }
 
       if (power < 0) {
         return 0;

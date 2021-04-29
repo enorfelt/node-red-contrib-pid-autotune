@@ -336,4 +336,42 @@ describe("kettle-sim node", function () {
       });
     });
   });
+
+  it("should switch remembered power setting", function (done) {
+    var flow = [
+      {
+        id: "n1",
+        // z: "flow",
+        type: "kettle-sim",
+        name: "kettle-sim",
+        diam: 35,
+        volume: 40,
+        temp: 60,
+        power: 5,
+        ambientTemp: 20,
+        wires: [["n2"]],
+      },
+      { id: "n2", type: "helper" },
+    ];
+    helper.load(kettleSim, flow, function () {
+      initContext(function () {
+        var n1 = helper.getNode("n1");
+        var n2 = helper.getNode("n2");
+        var runs = 0;
+        var firstPower = 0;
+        n2.on("input", function (msg) {
+          if (runs > 0) {
+            should(firstPower).eql(100);
+            should(msg.power).eql(0);
+            done();
+          } else {
+            firstPower = msg.power;
+            runs++;
+          }
+        });
+        n1.receive({ payload: 100 });
+        n1.receive({ payload: 0 });
+      });
+    });
+  });
 });
