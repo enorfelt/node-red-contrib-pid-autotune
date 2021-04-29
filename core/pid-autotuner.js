@@ -120,10 +120,8 @@ class AutoTuner {
   }
 
   log(text) {
-    var formattedDate = new Date(Date.now()).toISOString();
-    var log = `${formattedDate} - ${text}`;
     if (this._logFn && {}.toString.call(this._logFn) === "[object Function]") {
-      this._logFn(log);
+      this._logFn(text);
     }
   }
 

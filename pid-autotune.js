@@ -1,3 +1,4 @@
+const { notDeepEqual } = require("should");
 const autoTuner = require("./core/pid-autotuner");
 
 module.exports = function (RED) {
@@ -25,8 +26,16 @@ module.exports = function (RED) {
 
     node.latestTempReading = -1;
 
-    function log(log) {
+    node.stopSignaled = false;
+
+    function log(text) {
+      var log = getLogText(text);
       node.send([null, null, { payload: log }]);
+    }
+
+    function getLogText(text) {
+      var formattedDate = new Date(Date.now()).toISOString();
+      return `${formattedDate} - ${text}`;
     }
 
     function sleep(sec, callback) {
@@ -91,6 +100,14 @@ module.exports = function (RED) {
         return;
       }
 
+      if (node.stopSignaled) {
+        node.emit(COMPLETED_EVENT_NAME, {
+          state: 'stoped',
+          params: { Kp: 0, Ki: 0, Kd: 0},
+        });
+        return;
+      }
+
       const heat_percent = autoTuner.output;
       const heating_time = (node.sampleTime * heat_percent) / 100;
       const waitTime = node.sampleTime - heating_time;
@@ -110,6 +127,7 @@ module.exports = function (RED) {
     }
 
     async function startAutoTune(msg) {
+      log("Starting auto tune");
       const setpoint = await getSetpoint(msg);
       autoTuner.init({
         setpoint: setpoint,
@@ -130,10 +148,11 @@ module.exports = function (RED) {
 
     node.on(COMPLETED_EVENT_NAME, function (result) {
       node.isRunning = false;
+      node.stopSignaled = false;
       node.send([
         { state: result.state, payload: result.params },
         { payload: 0 },
-        null,
+        { payload: getLogText("Completed auto tune") },
       ]);
     });
 
@@ -146,6 +165,10 @@ module.exports = function (RED) {
         if (node.isRunning === false) {
           startAutoTune(msg);
           node.isRunning = true;
+        }
+
+        if (msg.cmd && msg.cmd === "stop") {
+          node.stopSignaled = true;
         }
 
         if (done) done();
