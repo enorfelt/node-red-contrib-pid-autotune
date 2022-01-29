@@ -21,6 +21,9 @@ module.exports = function (RED) {
     node.tempVariableType = config.tempVariableType || "msg";
     node.tempVariableMsgTopic = config.tempVariableMsgTopic || "temp-BK";
 
+    node.autoStart = config.autoStart || "true";
+    node.triggeredStartValue = config.triggeredStartValue|| "start"
+
     node.isRunning = false;
 
     node.latestTempReading = -1;
@@ -161,7 +164,8 @@ module.exports = function (RED) {
           node.latestTempReading = msg.payload;
         }
 
-        if (node.isRunning === false) {
+        if (node.isRunning === false && 
+          (node.autoStart === "true" || (node.autoStart === "false" && msg.cmd === node.triggeredStartValue))) {
           startAutoTune(msg);
           node.isRunning = true;
         }

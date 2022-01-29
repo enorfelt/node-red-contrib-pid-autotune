@@ -11,7 +11,9 @@
       setpointType: { value: "num" },
       tempVariable: { value: "payload" },
       tempVariableType: { value: "msg" },
-      tempVariableMsgTopic: { value: "temp-BK" }
+      tempVariableMsgTopic: { value: "temp-BK" },
+      autoStart: { value: true },
+      triggeredStartValue: { value: "start" },
     },
     inputs: 1,
     outputs: 3,
@@ -45,6 +47,11 @@
         default: this.tempVariableType || "msg",
         types: ["msg", "flow", "global"],
         typeField: "#node-input-tempVariable-typed",
+      });
+      $("#node-input-autoStart").typedInput({
+        default: "bool",
+        types: ["bool"],
+        typeField: "#node-input-autoStart-typed",
       });
     },
     oneditsave: function () {
@@ -87,6 +94,14 @@
   <div class="form-row">
     <label>Temp. topic</label>
     <input type="text" id="node-input-tempVariableMsgTopic" />
+  </div>
+  <div class="form-row">
+    <label>Auto Start</label>
+    <input type="text" id="node-input-autoStart" />
+  </div>
+  <div class="form-row">
+    <label>Start Value</label>
+    <input type="text" id="node-input-triggeredStartValue" />
   </div>
 </script>
 
