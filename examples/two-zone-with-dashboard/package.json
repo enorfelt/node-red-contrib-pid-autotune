@@ -1,0 +1,16 @@
+{
+    "name": "Home",
+    "description": "A Node-RED Project",
+    "version": "0.0.1",
+    "dependencies": {
+        "node-red-contrib-pid": "1.1.7",
+        "node-red-contrib-pid-autotune": "1.2.2",
+        "node-red-dashboard": "3.1.5"
+    },
+    "node-red": {
+        "settings": {
+            "flowFile": "flow.json",
+            "credentialsFile": "flow_cred.json"
+        }
+    }
+}
