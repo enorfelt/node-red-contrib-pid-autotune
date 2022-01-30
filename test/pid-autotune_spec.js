@@ -91,6 +91,8 @@ describe("pid-autotune node", function () {
         setpointType: "num",
         tempVariableMsgTopic: "temp-BK",
         wires: [["n2"]],
+        autoStart: "true",
+        triggeredStartValue: "start",
       },
       { id: "n2", type: "helper" },
     ];
@@ -107,6 +109,42 @@ describe("pid-autotune node", function () {
         });
 
         n1.receive({ payload: 65, topic: "temp-BK" });
+      });
+    });
+  });
+
+  it("should start autotune on trigger cmd", function (done) {
+    var flow = [
+      {
+        id: "n1",
+        // z: "flow",
+        type: "pid-autotune",
+        name: "pid-autotune",
+        outstep: 100,
+        maxout: 100,
+        lookback: 30,
+        setpoint: 65,
+        setpointType: "num",
+        tempVariableMsgTopic: "temp-BK",
+        wires: [["n2"]],
+        autoStart: "false",
+        triggeredStartValue: "start",
+      },
+      { id: "n2", type: "helper" },
+    ];
+    helper.load(pidAutotune, flow, function () {
+      initContext(function () {
+        var n1 = helper.getNode("n1");
+        var n2 = helper.getNode("n2");
+        n2.on("input", function (msg) {
+          should(msg.state).eql("succeeded");
+          should(msg.payload).have.ownProperty("Kp");
+          should(msg.payload).have.ownProperty("Ki");
+          should(msg.payload).have.ownProperty("Kd");
+          done();
+        });
+
+        n1.receive({ payload: 65, topic: "temp-BK", cmd: "start" });
       });
     });
   });
